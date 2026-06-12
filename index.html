@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VM-tipsliga 2026 — Klasskassan</title>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#232636;--bg4:#2d3045;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0f0f2;--text2:#9a9db0;--text3:#5a5c70;
+  --cyan:#00c4cc;--cyan-dim:rgba(0,196,204,0.12);
+  --green:#22c97a;--green-dim:rgba(34,201,122,0.12);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,0.13);
+  --red:#e8445a;--red-dim:rgba(232,68,90,0.12);
+  --gold:#f0b429;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:.875rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:22px}
+.logo h1{font-size:16px;font-weight:600;letter-spacing:-.3px}
+.logo span{font-size:12px;color:var(--text3);margin-left:4px}
+.refresh-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
+.refresh-btn:hover{background:var(--bg4)}
+.refresh-btn.loading{opacity:.5;pointer-events:none}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status-bar{background:var(--bg3);border-bottom:1px solid var(--border);padding:6px 1.5rem;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+.sdot.ok{background:var(--green)}.sdot.err{background:var(--red)}
+.tabs{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem}
+.tab{padding:10px 16px;font-size:14px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);font-weight:500}
+.view{display:none}.view.active{display:block}
+main{padding:1.25rem 1.5rem;max-width:960px;margin:0 auto}
+.standings-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--bg3)}
+th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border)}
+th.r{text-align:right}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:14px}
+td.r{text-align:right}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.rank-cell{font-size:18px;font-weight:700;min-width:32px;text-align:center}
+.rank-1{color:var(--gold)}.rank-2{color:#c0c0c0}.rank-3{color:#cd7f32}.rank-other{color:var(--text3)}
+.player-cell{display:flex;align-items:center;gap:8px}
+.player-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.player-name{font-weight:500}
+.player-name.patrik{color:var(--cyan)}
+.pts-big{font-size:18px;font-weight:700}
+.pts-max{font-size:11px;color:var(--text3);margin-top:1px}
+.pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;font-weight:600}
+.pill-g{background:var(--green-dim);color:var(--green)}
+.pill-a{background:var(--amber-dim);color:var(--amber)}
+.group-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:14px 0 6px;border-top:1px solid var(--border);margin-top:8px}
+.group-label:first-child{border-top:none;margin-top:0;padding-top:0}
+.match-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px}
+.match-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.match-num{font-size:11px;color:var(--text3);min-width:22px}
+.match-teams{font-size:14px;font-weight:500;flex:1}
+.match-actual{font-size:14px;font-weight:700;min-width:46px;text-align:center}
+.match-actual.pending{color:var(--text3);font-weight:400;font-size:12px}
+.tips-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tip-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2)}
+.tip-chip.hit-full{background:var(--green-dim);border-color:rgba(34,201,122,0.3)}
+.tip-chip.hit-sign{background:var(--amber-dim);border-color:rgba(245,166,35,0.3)}
+.tip-chip.miss{background:var(--red-dim);border-color:rgba(232,68,90,0.2);opacity:.7}
+.tip-chip.pending{background:var(--bg3);border-color:var(--border)}
+.tip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.bonus-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.bonus-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.bonus-cat{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.bonus-entry{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px}
+.bonus-entry:last-child{margin-bottom:0}
+.prog-track{height:3px;background:var(--bg3);border-radius:2px;margin-top:3px}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s}
+.filter-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.filter-label{font-size:12px;color:var(--text2)}
+.fbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:12px;cursor:pointer}
+.fbtn.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🏆</span>
+    <h1>VM-tipsliga 2026 <span>Klasskassan</span></h1>
+  </div>
+  <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+    <span id="refreshIcon">↻</span> Uppdatera
+  </button>
+</header>
+
+<div class="status-bar">
+  <div class="sdot" id="sdot"></div>
+  <span id="statusText">Hämtar resultat...</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="t-liga" onclick="switchTab('liga')">Tabell</button>
+  <button class="tab" id="t-matcher" onclick="switchTab('matcher')">Matcher & tips</button>
+  <button class="tab" id="t-bonus" onclick="switchTab('bonus')">Bonusfrågor</button>
+</div>
+
+<div id="v-liga" class="view active">
+  <main>
+    <div class="standings-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:40px;text-align:center">#</th>
+          <th>Tipsare</th>
+          <th class="r">Rätt res.</th>
+          <th class="r">Rätt 1X2</th>
+          <th class="r">Spelade</th>
+          <th class="r">Poäng</th>
+          <th style="min-width:100px">Progress</th>
+        </tr></thead>
+        <tbody id="standingsBody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="v-matcher" class="view">
+  <main>
+    <div class="filter-row">
+      <span class="filter-label">Visa:</span>
+      <button class="fbtn active" onclick="setMFilter('alla',this)">Alla</button>
+      <button class="fbtn" onclick="setMFilter('spelade',this)">Spelade</button>
+      <button class="fbtn" onclick="setMFilter('kommande',this)">Kommande</button>
+    </div>
+    <div id="matchList"></div>
+  </main>
+</div>
+
+<div id="v-bonus" class="view">
+  <main><div class="bonus-grid" id="bonusGrid"></div></main>
+</div>
+
+<script>
+// Anropar vår egen Netlify Function istället för API direkt
+const API_URL = '/.netlify/functions/scores';
+
+const PLAYERS = [
+  {id:'PatrikZ', name:'Patrik Z', color:'#00c4cc', isPatrik:true},
+  {id:'IBAA',    name:'IBAA',    color:'#a78bfa', isPatrik:false},
+  {id:'JohanB',  name:'Johan B', color:'#f87171', isPatrik:false},
+  {id:'DICK',    name:'Dick',    color:'#fb923c', isPatrik:false},
+  {id:'LinusJ',  name:'Linus J', color:'#34d399', isPatrik:false},
+  {id:'NiklasH', name:'Niklas H',color:'#60a5fa', isPatrik:false},
+];
+
+const TIPS = {"PatrikZ":{"tips":{"1":["Mexiko","Sydafrika",3,1,"1"],"2":["Sydkorea","Czechia",2,2,"X"],"3":["Kanada","Bosnien-Herzigovina",1,1,"X"],"4":["USA","Paraguay",2,1,"1"],"5":["Haiti","Skottland",0,3,"2"],"6":["Australien","Turkiet",1,2,"2"],"7":["Brasilien","Marocko",2,1,"1"],"8":["Qatar","Schweiz",0,4,"2"],"9":["Elfenbenskusten","Ecuador",1,1,"X"],"10":["Tyskland","Curaçao",7,0,"1"],"11":["Nederländerna","Japan",2,2,"X"],"12":["Sverige","Tunisien",1,1,"X"],"13":["Saudiarabien","Uruguay",0,3,"2"],"14":["Spanien","Kap Verde",5,0,"1"],"15":["Iran","Nya Zeeland",1,1,"X"],"16":["Belgien","Egypten",3,2,"1"],"17":["Frankrike","Senegal",2,1,"1"],"18":["Irak","Norge",0,4,"2"],"19":["Argentina","Algeriet",2,1,"1"],"20":["Österrike","Jordanien",2,0,"1"],"21":["Ghana","Panama",2,0,"1"],"22":["England","Kroatien",2,1,"1"],"23":["Portugal","Kongo",4,0,"1"],"24":["Uzbekistan","Colombia",0,3,"2"],"25":["Czechia","Sydafrika",2,0,"1"],"26":["Schweiz","Bosnien-Herzigovina",3,1,"1"],"27":["Kanada","Qatar",3,0,"1"],"28":["Mexiko","Sydkorea",1,1,"X"],"29":["Brasilien","Haiti",6,0,"1"],"30":["Skottland","Marocko",1,2,"2"],"31":["Turkiet","Paraguay",2,1,"1"],"32":["USA","Australien",3,1,"1"],"33":["Tyskland","Elfenbenskusten",2,1,"1"],"34":["Ecuador","Curaçao",4,0,"1"],"35":["Nederländerna","Sverige",2,1,"1"],"36":["Tunisien","Japan",1,2,"2"],"37":["Uruguay","Kap Verde",4,0,"1"],"38":["Spanien","Saudiarabien",3,0,"1"],"39":["Belgien","Iran",2,0,"1"],"40":["Nya Zeeland","Egypten",1,2,"2"],"41":["Norge","Senegal",2,1,"1"],"42":["Frankrike","Irak",3,0,"1"],"43":["Argentina","Österrike",3,2,"1"],"44":["Jordanien","Algeriet",0,1,"2"],"45":["England","Ghana",3,0,"1"],"46":["Panama","Kroatien",0,2,"2"],"47":["Portugal","Uzbekistan",4,0,"1"],"48":["Colombia","Kongo",2,1,"1"],"49":["Skottland","Brasilien",2,3,"2"],"50":["Marocko","Haiti",4,0,"1"],"51":["Schweiz","Kanada",2,1,"1"],"52":["Bosnien-Herzigovina","Qatar",2,0,"1"],"53":["Czechia","Mexiko",1,2,"2"],"54":["Sydafrika","Sydkorea",0,3,"2"],"55":["Curaçao","Elfenbenskusten",0,4,"2"],"56":["Ecuador","Tyskland",1,1,"X"],"57":["Japan","Sverige",1,2,"2"],"58":["Tunisien","Nederländerna",0,2,"2"],"59":["Turkiet","USA",1,1,"X"],"60":["Paraguay","Australien",1,1,"X"],"61":["Norge","Frankrike",1,2,"2"],"62":["Senegal","Irak",2,1,"1"],"63":["Egypten","Iran",2,0,"1"],"64":["Nya Zeeland","Belgien",0,2,"2"],"65":["Kap Verde","Saudiarabien",0,2,"2"],"66":["Uruguay","Spanien",1,1,"X"],"67":["Panama","England",0,2,"2"],"68":["Kroatien","Ghana",2,1,"1"],"69":["Algeriet","Österrike",1,1,"X"],"70":["Jordanien","Argentina",0,2,"2"],"71":["Colombia","Portugal",1,2,"2"],"72":["Kongo","Uzbekistan",2,1,"1"]},"bonus":{"skyttekung":"Haaland","vm":"Spanien","brons":"Norge","flest_mal":"Tyskland","flest_inslappa":"Curacao"}},
+"IBAA":{"tips":{"1":["Mexiko","Sydafrika",2,0,"1"],"2":["Sydkorea","Czechia",1,1,"X"],"3":["Kanada","Bosnien-Herzigovina",1,1,"X"],"4":["USA","Paraguay",1,0,"1"],"5":["Haiti","Skottland",0,2,"2"],"6":["Australien","Turkiet",0,1,"2"],"7":["Brasilien","Marocko",2,0,"1"],"8":["Qatar","Schweiz",0,3,"2"],"9":["Elfenbenskusten","Ecuador",2,1,"1"],"10":["Tyskland","Curaçao",4,0,"1"],"11":["Nederländerna","Japan",3,1,"1"],"12":["Sverige","Tunisien",2,0,"1"],"13":["Saudiarabien","Uruguay",0,2,"2"],"14":["Spanien","Kap Verde",4,0,"1"],"15":["Iran","Nya Zeeland",1,1,"X"],"16":["Belgien","Egypten",3,1,"1"],"17":["Frankrike","Senegal",2,0,"1"],"18":["Irak","Norge",0,3,"2"],"19":["Argentina","Algeriet",3,0,"1"],"20":["Österrike","Jordanien",2,1,"1"],"21":["Ghana","Panama",2,0,"1"],"22":["England","Kroatien",2,1,"1"],"23":["Portugal","Kongo",3,0,"1"],"24":["Uzbekistan","Colombia",0,2,"2"],"25":["Czechia","Sydafrika",2,1,"1"],"26":["Schweiz","Bosnien-Herzigovina",2,1,"1"],"27":["Kanada","Qatar",2,0,"1"],"28":["Mexiko","Sydkorea",1,1,"X"],"29":["Brasilien","Haiti",5,0,"1"],"30":["Skottland","Marocko",1,2,"2"],"31":["Turkiet","Paraguay",1,0,"1"],"32":["USA","Australien",2,0,"1"],"33":["Tyskland","Elfenbenskusten",2,0,"1"],"34":["Ecuador","Curaçao",3,0,"1"],"35":["Nederländerna","Sverige",2,1,"1"],"36":["Tunisien","Japan",0,2,"2"],"37":["Uruguay","Kap Verde",3,0,"1"],"38":["Spanien","Saudiarabien",3,0,"1"],"39":["Belgien","Iran",2,0,"1"],"40":["Nya Zeeland","Egypten",1,2,"2"],"41":["Norge","Senegal",2,0,"1"],"42":["Frankrike","Irak",3,0,"1"],"43":["Argentina","Österrike",2,0,"1"],"44":["Jordanien","Algeriet",0,1,"2"],"45":["England","Ghana",3,0,"1"],"46":["Panama","Kroatien",0,2,"2"],"47":["Portugal","Uzbekistan",3,0,"1"],"48":["Colombia","Kongo",2,0,"1"],"49":["Skottland","Brasilien",0,3,"2"],"50":["Marocko","Haiti",4,0,"1"],"51":["Schweiz","Kanada",2,0,"1"],"52":["Bosnien-Herzigovina","Qatar",1,0,"1"],"53":["Czechia","Mexiko",0,1,"2"],"54":["Sydafrika","Sydkorea",0,1,"2"],"55":["Curaçao","Elfenbenskusten",0,3,"2"],"56":["Ecuador","Tyskland",1,2,"2"],"57":["Japan","Sverige",1,2,"2"],"58":["Tunisien","Nederländerna",0,3,"2"],"59":["Turkiet","USA",1,2,"2"],"60":["Paraguay","Australien",0,1,"2"],"61":["Norge","Frankrike",1,2,"2"],"62":["Senegal","Irak",2,0,"1"],"63":["Egypten","Iran",2,0,"1"],"64":["Nya Zeeland","Belgien",0,3,"2"],"65":["Kap Verde","Saudiarabien",0,1,"2"],"66":["Uruguay","Spanien",0,2,"2"],"67":["Panama","England",0,2,"2"],"68":["Kroatien","Ghana",2,0,"1"],"69":["Algeriet","Österrike",0,1,"2"],"70":["Jordanien","Argentina",0,2,"2"],"71":["Colombia","Portugal",0,2,"2"],"72":["Kongo","Uzbekistan",0,2,"2"]},"bonus":{"skyttekung":"Mbappe","vm":"Spanien","brons":"England","flest_mal":"Tyskland","flest_inslappa":"Curacao"}},
+"JohanB":{"tips":{"1":["Mexiko","Sydafrika",2,2,"X"],"2":["Sydkorea","Czechia",1,1,"X"],"3":["Kanada","Bosnien-Herzigovina",2,2,"X"],"4":["USA","Paraguay",2,0,"1"],"5":["Haiti","Skottland",1,2,"2"],"6":["Australien","Turkiet",1,1,"X"],"7":["Brasilien","Marocko",3,0,"1"],"8":["Qatar","Schweiz",0,3,"2"],"9":["Elfenbenskusten","Ecuador",1,1,"X"],"10":["Tyskland","Curaçao",5,0,"1"],"11":["Nederländerna","Japan",2,1,"1"],"12":["Sverige","Tunisien",2,0,"1"],"13":["Saudiarabien","Uruguay",0,2,"2"],"14":["Spanien","Kap Verde",4,0,"1"],"15":["Iran","Nya Zeeland",2,0,"1"],"16":["Belgien","Egypten",2,0,"1"],"17":["Frankrike","Senegal",3,0,"1"],"18":["Irak","Norge",0,3,"2"],"19":["Argentina","Algeriet",2,0,"1"],"20":["Österrike","Jordanien",1,0,"1"],"21":["Ghana","Panama",1,0,"1"],"22":["England","Kroatien",2,0,"1"],"23":["Portugal","Kongo",4,0,"1"],"24":["Uzbekistan","Colombia",0,2,"2"],"25":["Czechia","Sydafrika",1,2,"2"],"26":["Schweiz","Bosnien-Herzigovina",2,0,"1"],"27":["Kanada","Qatar",2,0,"1"],"28":["Mexiko","Sydkorea",2,1,"1"],"29":["Brasilien","Haiti",5,0,"1"],"30":["Skottland","Marocko",0,2,"2"],"31":["Turkiet","Paraguay",2,0,"1"],"32":["USA","Australien",3,0,"1"],"33":["Tyskland","Elfenbenskusten",3,0,"1"],"34":["Ecuador","Curaçao",4,0,"1"],"35":["Nederländerna","Sverige",2,0,"1"],"36":["Tunisien","Japan",0,2,"2"],"37":["Uruguay","Kap Verde",3,0,"1"],"38":["Spanien","Saudiarabien",4,0,"1"],"39":["Belgien","Iran",3,0,"1"],"40":["Nya Zeeland","Egypten",0,2,"2"],"41":["Norge","Senegal",3,0,"1"],"42":["Frankrike","Irak",4,0,"1"],"43":["Argentina","Österrike",3,0,"1"],"44":["Jordanien","Algeriet",0,2,"2"],"45":["England","Ghana",3,0,"1"],"46":["Panama","Kroatien",0,3,"2"],"47":["Portugal","Uzbekistan",4,0,"1"],"48":["Colombia","Kongo",2,0,"1"],"49":["Skottland","Brasilien",0,4,"2"],"50":["Marocko","Haiti",4,0,"1"],"51":["Schweiz","Kanada",2,0,"1"],"52":["Bosnien-Herzigovina","Qatar",2,0,"1"],"53":["Czechia","Mexiko",0,2,"2"],"54":["Sydafrika","Sydkorea",0,2,"2"],"55":["Curaçao","Elfenbenskusten",0,4,"2"],"56":["Ecuador","Tyskland",0,2,"2"],"57":["Japan","Sverige",0,2,"2"],"58":["Tunisien","Nederländerna",0,3,"2"],"59":["Turkiet","USA",0,2,"2"],"60":["Paraguay","Australien",0,2,"2"],"61":["Norge","Frankrike",0,2,"2"],"62":["Senegal","Irak",2,0,"1"],"63":["Egypten","Iran",2,0,"1"],"64":["Nya Zeeland","Belgien",0,3,"2"],"65":["Kap Verde","Saudiarabien",0,2,"2"],"66":["Uruguay","Spanien",0,3,"2"],"67":["Panama","England",0,3,"2"],"68":["Kroatien","Ghana",2,0,"1"],"69":["Algeriet","Österrike",0,2,"2"],"70":["Jordanien","Argentina",0,3,"2"],"71":["Colombia","Portugal",0,3,"2"],"72":["Kongo","Uzbekistan",0,2,"2"]},"bonus":{"skyttekung":"Ronaldo","vm":"Portugal","brons":"Spanien","flest_mal":"Portugal","flest_inslappa":"Curacao"}},
+"DICK":{"tips":{"1":["Mexiko","Sydafrika",2,0,"1"],"2":["Sydkorea","Czechia",1,1,"X"],"3":["Kanada","Bosnien-Herzigovina",1,1,"X"],"4":["USA","Paraguay",2,1,"1"],"5":["Haiti","Skottland",0,2,"2"],"6":["Australien","Turkiet",1,2,"2"],"7":["Brasilien","Marocko",2,1,"1"],"8":["Qatar","Schweiz",0,3,"2"],"9":["Elfenbenskusten","Ecuador",1,0,"1"],"10":["Tyskland","Curaçao",5,0,"1"],"11":["Nederländerna","Japan",3,0,"1"],"12":["Sverige","Tunisien",2,1,"1"],"13":["Saudiarabien","Uruguay",0,2,"2"],"14":["Spanien","Kap Verde",4,0,"1"],"15":["Iran","Nya Zeeland",1,1,"X"],"16":["Belgien","Egypten",2,1,"1"],"17":["Frankrike","Senegal",2,0,"1"],"18":["Irak","Norge",0,3,"2"],"19":["Argentina","Algeriet",3,0,"1"],"20":["Österrike","Jordanien",2,0,"1"],"21":["Ghana","Panama",2,0,"1"],"22":["England","Kroatien",3,0,"1"],"23":["Portugal","Kongo",4,0,"1"],"24":["Uzbekistan","Colombia",0,2,"2"],"25":["Czechia","Sydafrika",2,1,"1"],"26":["Schweiz","Bosnien-Herzigovina",3,0,"1"],"27":["Kanada","Qatar",3,0,"1"],"28":["Mexiko","Sydkorea",2,2,"X"],"29":["Brasilien","Haiti",5,0,"1"],"30":["Skottland","Marocko",1,2,"2"],"31":["Turkiet","Paraguay",2,0,"1"],"32":["USA","Australien",3,0,"1"],"33":["Tyskland","Elfenbenskusten",3,0,"1"],"34":["Ecuador","Curaçao",4,0,"1"],"35":["Nederländerna","Sverige",3,1,"1"],"36":["Tunisien","Japan",1,2,"2"],"37":["Uruguay","Kap Verde",3,0,"1"],"38":["Spanien","Saudiarabien",3,0,"1"],"39":["Belgien","Iran",2,0,"1"],"40":["Nya Zeeland","Egypten",0,2,"2"],"41":["Norge","Senegal",2,1,"1"],"42":["Frankrike","Irak",3,0,"1"],"43":["Argentina","Österrike",2,0,"1"],"44":["Jordanien","Algeriet",0,2,"2"],"45":["England","Ghana",3,0,"1"],"46":["Panama","Kroatien",0,2,"2"],"47":["Portugal","Uzbekistan",3,0,"1"],"48":["Colombia","Kongo",2,0,"1"],"49":["Skottland","Brasilien",1,3,"2"],"50":["Marocko","Haiti",3,0,"1"],"51":["Schweiz","Kanada",2,0,"1"],"52":["Bosnien-Herzigovina","Qatar",2,0,"1"],"53":["Czechia","Mexiko",1,2,"2"],"54":["Sydafrika","Sydkorea",0,2,"2"],"55":["Curaçao","Elfenbenskusten",0,3,"2"],"56":["Ecuador","Tyskland",1,2,"2"],"57":["Japan","Sverige",0,2,"2"],"58":["Tunisien","Nederländerna",0,2,"2"],"59":["Turkiet","USA",1,2,"2"],"60":["Paraguay","Australien",0,1,"2"],"61":["Norge","Frankrike",0,2,"2"],"62":["Senegal","Irak",2,0,"1"],"63":["Egypten","Iran",2,0,"1"],"64":["Nya Zeeland","Belgien",0,2,"2"],"65":["Kap Verde","Saudiarabien",0,2,"2"],"66":["Uruguay","Spanien",1,2,"2"],"67":["Panama","England",0,3,"2"],"68":["Kroatien","Ghana",2,0,"1"],"69":["Algeriet","Österrike",0,1,"2"],"70":["Jordanien","Argentina",0,3,"2"],"71":["Colombia","Portugal",0,2,"2"],"72":["Kongo","Uzbekistan",0,2,"2"]},"bonus":{"skyttekung":"Harry Kane","vm":"England","brons":"Frankrike","flest_mal":"Spanien","flest_inslappa":"Haiti"}},
+"LinusJ":{"tips":{"1":["Mexiko","Sydafrika",2,0,"1"],"2":["Sydkorea","Czechia",1,1,"X"],"3":["Kanada","Bosnien-Herzigovina",0,0,"X"],"4":["USA","Paraguay",2,1,"1"],"5":["Haiti","Skottland",0,2,"2"],"6":["Australien","Turkiet",0,1,"2"],"7":["Brasilien","Marocko",3,1,"1"],"8":["Qatar","Schweiz",0,3,"2"],"9":["Elfenbenskusten","Ecuador",2,1,"1"],"10":["Tyskland","Curaçao",6,0,"1"],"11":["Nederländerna","Japan",2,1,"1"],"12":["Sverige","Tunisien",2,1,"1"],"13":["Saudiarabien","Uruguay",0,2,"2"],"14":["Spanien","Kap Verde",5,0,"1"],"15":["Iran","Nya Zeeland",1,1,"X"],"16":["Belgien","Egypten",3,0,"1"],"17":["Frankrike","Senegal",2,0,"1"],"18":["Irak","Norge",0,4,"2"],"19":["Argentina","Algeriet",3,0,"1"],"20":["Österrike","Jordanien",2,0,"1"],"21":["Ghana","Panama",2,0,"1"],"22":["England","Kroatien",2,1,"1"],"23":["Portugal","Kongo",4,0,"1"],"24":["Uzbekistan","Colombia",0,3,"2"],"25":["Czechia","Sydafrika",1,0,"1"],"26":["Schweiz","Bosnien-Herzigovina",2,1,"1"],"27":["Kanada","Qatar",3,0,"1"],"28":["Mexiko","Sydkorea",2,1,"1"],"29":["Brasilien","Haiti",6,0,"1"],"30":["Skottland","Marocko",0,2,"2"],"31":["Turkiet","Paraguay",2,0,"1"],"32":["USA","Australien",3,0,"1"],"33":["Tyskland","Elfenbenskusten",3,1,"1"],"34":["Ecuador","Curaçao",4,0,"1"],"35":["Nederländerna","Sverige",2,1,"1"],"36":["Tunisien","Japan",0,2,"2"],"37":["Uruguay","Kap Verde",3,0,"1"],"38":["Spanien","Saudiarabien",3,0,"1"],"39":["Belgien","Iran",3,0,"1"],"40":["Nya Zeeland","Egypten",0,2,"2"],"41":["Norge","Senegal",2,0,"1"],"42":["Frankrike","Irak",3,0,"1"],"43":["Argentina","Österrike",3,0,"1"],"44":["Jordanien","Algeriet",0,2,"2"],"45":["England","Ghana",3,0,"1"],"46":["Panama","Kroatien",0,2,"2"],"47":["Portugal","Uzbekistan",4,0,"1"],"48":["Colombia","Kongo",2,0,"1"],"49":["Skottland","Brasilien",0,4,"2"],"50":["Marocko","Haiti",4,0,"1"],"51":["Schweiz","Kanada",2,0,"1"],"52":["Bosnien-Herzigovina","Qatar",2,0,"1"],"53":["Czechia","Mexiko",1,2,"2"],"54":["Sydafrika","Sydkorea",1,4,"2"],"55":["Curaçao","Elfenbenskusten",0,3,"2"],"56":["Ecuador","Tyskland",1,2,"2"],"57":["Japan","Sverige",1,2,"2"],"58":["Tunisien","Nederländerna",0,2,"2"],"59":["Turkiet","USA",0,2,"2"],"60":["Paraguay","Australien",0,2,"2"],"61":["Norge","Frankrike",0,2,"2"],"62":["Senegal","Irak",2,0,"1"],"63":["Egypten","Iran",2,0,"1"],"64":["Nya Zeeland","Belgien",0,3,"2"],"65":["Kap Verde","Saudiarabien",0,2,"2"],"66":["Uruguay","Spanien",0,2,"2"],"67":["Panama","England",0,3,"2"],"68":["Kroatien","Ghana",2,0,"1"],"69":["Algeriet","Österrike",0,2,"2"],"70":["Jordanien","Argentina",0,3,"2"],"71":["Colombia","Portugal",0,2,"2"],"72":["Kongo","Uzbekistan",0,2,"2"]},"bonus":{"skyttekung":"Mbappe","vm":"Spanien","brons":"Frankrike","flest_mal":"Spanien","flest_inslappa":"Curacao"}},
+"NiklasH":{"tips":{"1":["Mexiko","Sydafrika",2,0,"1"],"2":["Sydkorea","Czechia",1,1,"X"],"3":["Kanada","Bosnien-Herzigovina",1,1,"X"],"4":["USA","Paraguay",2,1,"1"],"5":["Haiti","Skottland",0,2,"2"],"6":["Australien","Turkiet",0,1,"2"],"7":["Brasilien","Marocko",3,0,"1"],"8":["Qatar","Schweiz",0,3,"2"],"9":["Elfenbenskusten","Ecuador",1,1,"X"],"10":["Tyskland","Curaçao",5,0,"1"],"11":["Nederländerna","Japan",2,1,"1"],"12":["Sverige","Tunisien",2,1,"1"],"13":["Saudiarabien","Uruguay",0,2,"2"],"14":["Spanien","Kap Verde",4,0,"1"],"15":["Iran","Nya Zeeland",0,1,"2"],"16":["Belgien","Egypten",3,0,"1"],"17":["Frankrike","Senegal",2,0,"1"],"18":["Irak","Norge",0,3,"2"],"19":["Argentina","Algeriet",2,0,"1"],"20":["Österrike","Jordanien",1,0,"1"],"21":["Ghana","Panama",2,0,"1"],"22":["England","Kroatien",2,1,"1"],"23":["Portugal","Kongo",3,0,"1"],"24":["Uzbekistan","Colombia",0,2,"2"],"25":["Czechia","Sydafrika",0,1,"2"],"26":["Schweiz","Bosnien-Herzigovina",2,0,"1"],"27":["Kanada","Qatar",3,0,"1"],"28":["Mexiko","Sydkorea",2,1,"1"],"29":["Brasilien","Haiti",5,0,"1"],"30":["Skottland","Marocko",0,3,"2"],"31":["Turkiet","Paraguay",2,0,"1"],"32":["USA","Australien",2,0,"1"],"33":["Tyskland","Elfenbenskusten",2,0,"1"],"34":["Ecuador","Curaçao",3,0,"1"],"35":["Nederländerna","Sverige",2,0,"1"],"36":["Tunisien","Japan",1,2,"2"],"37":["Uruguay","Kap Verde",3,0,"1"],"38":["Spanien","Saudiarabien",3,0,"1"],"39":["Belgien","Iran",2,0,"1"],"40":["Nya Zeeland","Egypten",0,2,"2"],"41":["Norge","Senegal",2,0,"1"],"42":["Frankrike","Irak",3,0,"1"],"43":["Argentina","Österrike",2,0,"1"],"44":["Jordanien","Algeriet",0,1,"2"],"45":["England","Ghana",3,0,"1"],"46":["Panama","Kroatien",0,2,"2"],"47":["Portugal","Uzbekistan",3,0,"1"],"48":["Colombia","Kongo",2,0,"1"],"49":["Skottland","Brasilien",0,3,"2"],"50":["Marocko","Haiti",4,0,"1"],"51":["Schweiz","Kanada",2,0,"1"],"52":["Bosnien-Herzigovina","Qatar",2,0,"1"],"53":["Czechia","Mexiko",1,1,"X"],"54":["Sydafrika","Sydkorea",0,2,"2"],"55":["Curaçao","Elfenbenskusten",0,3,"2"],"56":["Ecuador","Tyskland",0,2,"2"],"57":["Japan","Sverige",1,2,"2"],"58":["Tunisien","Nederländerna",0,2,"2"],"59":["Turkiet","USA",1,2,"2"],"60":["Paraguay","Australien",0,1,"2"],"61":["Norge","Frankrike",1,2,"2"],"62":["Senegal","Irak",2,0,"1"],"63":["Egypten","Iran",2,0,"1"],"64":["Nya Zeeland","Belgien",0,2,"2"],"65":["Kap Verde","Saudiarabien",0,1,"2"],"66":["Uruguay","Spanien",0,2,"2"],"67":["Panama","England",0,2,"2"],"68":["Kroatien","Ghana",2,0,"1"],"69":["Algeriet","Österrike",0,1,"2"],"70":["Jordanien","Argentina",0,2,"2"],"71":["Colombia","Portugal",0,2,"2"],"72":["Kongo","Uzbekistan",0,2,"2"]},"bonus":{"skyttekung":"Kylian Mbappé","vm":"Spanien","brons":"Frankrike","flest_mal":"Spanien","flest_inslappa":"Irak"}}};
+
+const NORM={'Mexico':'Mexiko','South Africa':'Sydafrika','South Korea':'Sydkorea','Czech Republic':'Czechia','Czechia':'Czechia','Canada':'Kanada','Bosnia and Herzegovina':'Bosnien-Herzigovina','USA':'USA','United States':'USA','Paraguay':'Paraguay','Haiti':'Haiti','Scotland':'Skottland','Australia':'Australien','Turkey':'Turkiet','Türkiye':'Turkiet','Brazil':'Brasilien','Morocco':'Marocko','Qatar':'Qatar','Switzerland':'Schweiz','Ivory Coast':'Elfenbenskusten',"Côte d'Ivoire":'Elfenbenskusten','Ecuador':'Ecuador','Germany':'Tyskland','Curaçao':'Curaçao','Curacao':'Curaçao','Netherlands':'Nederländerna','Japan':'Japan','Sweden':'Sverige','Tunisia':'Tunisien','Saudi Arabia':'Saudiarabien','Uruguay':'Uruguay','Iran':'Iran','New Zealand':'Nya Zeeland','Belgium':'Belgien','Egypt':'Egypten','France':'Frankrike','Senegal':'Senegal','Iraq':'Irak','Norway':'Norge','Argentina':'Argentina','Algeria':'Algeriet','Austria':'Österrike','Jordan':'Jordanien','Ghana':'Ghana','Panama':'Panama','England':'England','Croatia':'Kroatien','Portugal':'Portugal','DR Congo':'Kongo','Congo DR':'Kongo','Uzbekistan':'Uzbekistan','Colombia':'Colombia','Spain':'Spanien','Cape Verde':'Kap Verde','Cabo Verde':'Kap Verde','Korea Republic':'Sydkorea','Bosnia & Herzegovina':'Bosnien-Herzigovina'};
+function n(t){return NORM[t]||t;}
+
+let apiResults={};
+let mFilter='alla';
+
+async function loadData(){
+  const btn=document.getElementById('refreshBtn');
+  const icon=document.getElementById('refreshIcon');
+  btn.classList.add('loading');
+  icon.innerHTML='<span class="spin">↻</span>';
+  setStatus('','Hämtar resultat...');
+  try{
+    const r=await fetch(API_URL);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    parseAPI(data.matches||[]);
+    const played=Object.values(apiResults).filter(m=>m.played).length;
+    setStatus('ok',`Uppdaterat ${new Date().toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'})} · ${played} matcher spelade`);
+  }catch(e){
+    setStatus('err','Kunde inte hämta data: '+e.message);
+  }
+  btn.classList.remove('loading');
+  icon.textContent='↻';
+  renderAll();
+}
+
+function parseAPI(matches){
+  apiResults={};
+  const lookup={};
+  for(const m of matches){
+    const h=n(m.homeTeam?.name||'');
+    const a=n(m.awayTeam?.name||'');
+    const s=m.score?.fullTime;
+    const played=m.status==='FINISHED'&&s&&s.home!==null&&s.away!==null;
+    if(h&&a) lookup[h+'|'+a]={home:s?.home,away:s?.away,played};
+  }
+  for(const [num,tip] of Object.entries(TIPS.PatrikZ.tips)){
+    if(parseInt(num)>72) continue;
+    const h=tip[0],a=tip[1];
+    if(lookup[h+'|'+a]) apiResults[num]=lookup[h+'|'+a];
+    else if(lookup[a+'|'+h]){
+      const r=lookup[a+'|'+h];
+      apiResults[num]={home:r.away,away:r.home,played:r.played};
+    }
+  }
+}
+
+function calcPts(pid,num){
+  const tip=TIPS[pid]?.tips[num];
+  const actual=apiResults[num];
+  if(!tip||!actual||!actual.played) return{pts:null,hitSign:false,hitRes:false};
+  const hitRes=tip[2]===actual.home&&tip[3]===actual.away;
+  const actualSign=actual.home>actual.away?'1':actual.home<actual.away?'2':'X';
+  const hitSign=tip[4]===actualSign;
+  return{pts:(hitSign?2:0)+(hitRes?2:0),hitSign,hitRes};
+}
+
+function playerStats(pid){
+  let pts=0,hitSign=0,hitRes=0,played=0;
+  for(let i=1;i<=72;i++){
+    const {pts:p,hitSign:hs,hitRes:hr}=calcPts(pid,String(i));
+    if(p!==null){pts+=p;played++;if(hs)hitSign++;if(hr)hitRes++;}
+  }
+  return{pts,hitSign,hitRes,played};
+}
+
+function switchTab(t){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('v-'+t).classList.add('active');
+  document.getElementById('t-'+t).classList.add('active');
+}
+function setMFilter(f,btn){
+  mFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMatches();
+}
+function setStatus(s,msg){
+  const d=document.getElementById('sdot');
+  d.className='sdot'+(s==='ok'?' ok':s==='err'?' err':'');
+  document.getElementById('statusText').textContent=msg;
+}
+
+const MAX_PTS=432;
+function renderAll(){renderStandings();renderMatches();renderBonus();}
+
+function renderStandings(){
+  const stats=PLAYERS.map(p=>({...p,...playerStats(p.id)}));
+  stats.sort((a,b)=>b.pts-a.pts||b.hitRes-a.hitRes);
+  document.getElementById('standingsBody').innerHTML=stats.map((p,i)=>{
+    const rank=i+1;
+    const rankIcon=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`#${rank}`;
+    const pct=Math.min(100,Math.round(p.pts/MAX_PTS*100));
+    return`<tr>
+      <td class="rank-cell">${rankIcon}</td>
+      <td><div class="player-cell"><div class="player-dot" style="background:${p.color}"></div><span class="player-name${p.isPatrik?' patrik':''}">${p.name}</span></div></td>
+      <td class="r"><span class="pill pill-g">${p.hitRes}</span></td>
+      <td class="r"><span class="pill pill-a">${p.hitSign}</span></td>
+      <td class="r" style="color:var(--text2)">${p.played}</td>
+      <td class="r"><div class="pts-big">${p.pts}</div><div class="pts-max">av ${MAX_PTS}</div></td>
+      <td><div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${p.color}"></div></div><div style="font-size:11px;color:var(--text3);margin-top:2px">${pct}%</div></td>
+    </tr>`;
+  }).join('');
+}
+
+const GROUPS={A:[1,2,25,28,53,54],B:[3,8,26,27,51,52],C:[5,7,29,30,49,50],D:[4,6,31,32,59,60],E:[9,10,33,34,55,56],F:[11,12,35,36,57,58],G:[15,16,39,40,63,64],H:[13,14,37,38,65,66],I:[17,18,41,42,61,62],J:[19,20,43,44,69,70],K:[23,24,47,48,71,72],L:[21,22,45,46,67,68]};
+const MT={};
+for(const [num,tip] of Object.entries(TIPS.PatrikZ.tips)){MT[num]=[tip[0],tip[1]];}
+
+function renderMatches(){
+  let html='';
+  for(const [grp,nums] of Object.entries(GROUPS)){
+    let grpHtml='';
+    for(const num of nums){
+      const actual=apiResults[String(num)];
+      const played=actual&&actual.played;
+      if(mFilter==='spelade'&&!played) continue;
+      if(mFilter==='kommande'&&played) continue;
+      const chips=PLAYERS.map(p=>{
+        const tip=TIPS[p.id]?.tips[String(num)];
+        if(!tip) return '';
+        const {pts,hitSign,hitRes}=calcPts(p.id,String(num));
+        const cls=pts===null?'pending':hitRes?'hit-full':hitSign?'hit-sign':'miss';
+        return`<span class="tip-chip ${cls}"><span class="tip-dot" style="background:${p.color}"></span>${p.name}: ${tip[2]}-${tip[3]} (${tip[4]})</span>`;
+      }).join('');
+      const scoreStr=played?`${actual.home}–${actual.away}`:'–';
+      grpHtml+=`<div class="match-card">
+        <div class="match-header">
+          <span class="match-num">${num}</span>
+          <span class="match-teams">${MT[num]?MT[num][0]:''} – ${MT[num]?MT[num][1]:''}</span>
+          <span class="match-actual${played?'':' pending'}">${scoreStr}</span>
+        </div>
+        <div class="tips-row">${chips}</div>
+      </div>`;
+    }
+    if(grpHtml) html+=`<div class="group-label">Grupp ${grp}</div>${grpHtml}`;
+  }
+  document.getElementById('matchList').innerHTML=html||'<p style="color:var(--text3);padding:1rem 0">Inga matcher matchar filtret.</p>';
+}
+
+const BONUS_CATS=[{key:'skyttekung',label:'Skyttekung',pts:20},{key:'vm',label:'Världsmästare',pts:20},{key:'brons',label:'Vinnare bronsmatch',pts:20},{key:'flest_mal',label:'Flest mål i gruppspelet',pts:10},{key:'flest_inslappa',label:'Flest insläppta i gruppspelet',pts:10}];
+
+function renderBonus(){
+  document.getElementById('bonusGrid').innerHTML=BONUS_CATS.map(cat=>`
+    <div class="bonus-card">
+      <div class="bonus-cat">${cat.label} · max ${cat.pts}p</div>
+      ${PLAYERS.map(p=>`<div class="bonus-entry">
+        <div class="player-dot" style="background:${p.color}"></div>
+        <span class="${p.isPatrik?'player-name patrik':'player-name'}">${p.name}:</span>
+        <span style="color:var(--text2)">${TIPS[p.id]?.bonus[cat.key]||'–'}</span>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+loadData();
+</script>
+</body>
+</html>
